@@ -60,7 +60,7 @@ BarWidget {
 
   // Swatch red dot & square styling
   readonly property color swatchRed: "#e2231a"
-  readonly property real squareSize: Math.max(6, Math.min(8, Math.round(button.fontSize * 0.52)))
+  readonly property real squareSize: Math.max(3, Math.round(button.fontSize * 0.26))
   readonly property bool isRedDotFormat: !root.vertical && (root.currentFormat === "dot_beat" || root.currentFormat === "with_unit")
 
   // Popout panel coordinator contract (Omarchy shell standard)
@@ -250,7 +250,6 @@ BarWidget {
           height: root.squareSize
           color: root.swatchRed
           anchors.bottom: parent.bottom
-          anchors.bottomMargin: Math.max(2, Math.round(button.fontSize * 0.2))
         }
       }
 
@@ -297,7 +296,6 @@ BarWidget {
           height: root.squareSize
           color: root.swatchRed
           anchors.bottom: parent.bottom
-          anchors.bottomMargin: Math.max(2, Math.round(button.fontSize * 0.2))
         }
       }
 

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# omabeat — Swatch Internet Time CLI runner
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+HELPER="$SCRIPT_DIR/scripts/omabeat-ctl.py"
+
+if [[ ! -f "$HELPER" ]]; then
+  echo "Error: omabeat helper script not found at $HELPER" >&2
+  exit 1
+fi
+
+exec python3 "$HELPER" "$@"

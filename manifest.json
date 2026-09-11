@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "id": "dorneles.omabeat",
+  "name": "OmaBeat",
+  "version": "1.0.0",
+  "author": "Dorneles",
+  "license": "MIT",
+  "icon": "assets/icon.svg",
+  "description": "Universal Swatch Internet Time (.beat) widget, real-time converter, and cross-timezone sync tool for the Omarchy status bar.",
+  "keywords": [
+    "swatch",
+    "internet-time",
+    "beat",
+    "bmt",
+    "time",
+    "clock",
+    "timezone",
+    "quickshell",
+    "omarchy"
+  ],
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "OmaBeat",
+    "icon": "assets/icon.svg",
+    "description": "Universal Swatch Internet Time (@000 - @999 .beats) without time zones or daylight saving time",
+    "category": "Time",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "format": "beats",
+      "showCentibeats": false,
+      "badgeStyle": "flat",
+      "showIcon": true,
+      "showPrefix": true,
+      "showSuffix": false,
+      "centuryChime": false,
+      "copyNotification": true
+    },
+    "schema": [
+      {
+        "key": "format",
+        "type": "enum",
+        "label": "Display Format",
+        "options": [
+          "beats",
+          "centibeats",
+          "with_unit",
+          "percentage",
+          "dual_local"
+        ],
+        "defaultValue": "beats",
+        "description": "Bar format: 'beats' (@550), 'centibeats' (@550.85), 'with_unit' (@550 .beats), 'percentage' (@550 55%), or 'dual_local' (@550 09:17)."
+      },
+      {
+        "key": "badgeStyle",
+        "type": "enum",
+        "label": "Badge Style",
+        "options": [
+          "flat",
+          "pill",
+          "progress"
+        ],
+        "defaultValue": "flat",
+        "description": "'flat' transparent background, 'pill' rounded capsule, 'progress' day beat progress fill."
+      },
+      {
+        "key": "showCentibeats",
+        "type": "boolean",
+        "label": "Live Centibeats (Sub-beats)",
+        "defaultValue": false,
+        "description": "Show 2 decimal places ticking in real time (@550.85) in the status bar."
+      },
+      {
+        "key": "showIcon",
+        "type": "boolean",
+        "label": "Show Swatch Icon",
+        "defaultValue": true,
+        "description": "Show the @ beat icon before the text in the bar."
+      },
+      {
+        "key": "showPrefix",
+        "type": "boolean",
+        "label": "Show '@' Prefix",
+        "defaultValue": true,
+        "description": "Show the '@' character before the beat number (e.g. '@550' vs '550')."
+      },
+      {
+        "key": "showSuffix",
+        "type": "boolean",
+        "label": "Show '.beats' Suffix",
+        "defaultValue": false,
+        "description": "Show '.beats' suffix after the number."
+      },
+      {
+        "key": "centuryChime",
+        "type": "boolean",
+        "label": "Century Beat Desktop Notifications",
+        "defaultValue": false,
+        "description": "Send a desktop notification every 100 beats (@100, @200, @300...)."
+      },
+      {
+        "key": "copyNotification",
+        "type": "boolean",
+        "label": "Notify on Beat Copy",
+        "defaultValue": true,
+        "description": "Show a desktop toast when copying current beat to clipboard."
+      }
+    ]
+  }
+}

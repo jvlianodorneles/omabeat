@@ -105,8 +105,9 @@ BarWidget {
     root.updateSetting("showCentibeats", root.showCentibeats)
   }
 
-  function cycleFormat() {
-    var next = Model.nextFormat(root.currentFormat)
+  function cycleFormat(direction) {
+    var step = (typeof direction === "number" && direction > 0) ? -1 : 1
+    var next = Model.nextFormat(root.currentFormat, step)
     root.currentFormat = next
     root.updateSetting("format", next)
   }
@@ -365,7 +366,7 @@ BarWidget {
     }
 
     onWheelMoved: function(delta) {
-      root.cycleFormat()
+      root.cycleFormat(delta)
     }
   }
 }

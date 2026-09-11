@@ -209,10 +209,13 @@ function formatDisplay(info, format, showCentibeats, showPrefix, showSuffix) {
   }
 }
 
-// Next format in rotation when clicking / cycling
-function nextFormat(current) {
+// Next/previous format in rotation when clicking or scrolling
+function nextFormat(current, step) {
+  step = typeof step === "number" ? step : 1
   var formats = ["beats", "centibeats", "dot_beat", "with_unit", "percentage", "dual_local"]
   var idx = formats.indexOf(current)
   if (idx === -1) return "beats"
-  return formats[(idx + 1) % formats.length]
+  var newIdx = (idx + step) % formats.length
+  if (newIdx < 0) newIdx += formats.length
+  return formats[newIdx]
 }

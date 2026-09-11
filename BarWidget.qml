@@ -249,7 +249,7 @@ BarWidget {
           width: root.squareSize
           height: root.squareSize
           color: root.swatchRed
-          anchors.bottom: parent.bottom
+          y: Math.round(dotBeatText.baselineOffset > 0 ? (dotBeatText.baselineOffset - height) : (parent.height * 0.75 - height))
         }
       }
 
@@ -295,7 +295,7 @@ BarWidget {
           width: root.squareSize
           height: root.squareSize
           color: root.swatchRed
-          anchors.bottom: parent.bottom
+          y: Math.round(unitPrefixText.baselineOffset > 0 ? (unitPrefixText.baselineOffset - height) : (parent.height * 0.75 - height))
         }
       }
 

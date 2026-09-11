@@ -49,12 +49,13 @@
         "options": [
           "beats",
           "centibeats",
+          "dot_beat",
           "with_unit",
           "percentage",
           "dual_local"
         ],
         "defaultValue": "beats",
-        "description": "Bar format: 'beats' (@550), 'centibeats' (@550.85), 'with_unit' (@550 .beats), 'percentage' (@550 55%), or 'dual_local' (@550 09:17)."
+        "description": "Bar format: 'beats' (@550), 'centibeats' (@550.85), 'dot_beat' (.550 with red dot), 'with_unit' (@550 .beats with red dot), 'percentage' (@550 55%), or 'dual_local' (@550 09:17)."
       },
       {
         "key": "badgeStyle",

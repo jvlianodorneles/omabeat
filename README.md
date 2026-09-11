@@ -39,7 +39,8 @@
 - **Multiple Display Formats:**
   - `@550` (Standard 3-digit zero-padded beats)
   - `@550.85` (Live centibeats ticking every 0.864s)
-  - `@550 .beats` (Full unit suffix)
+  - `▪550` (`dot_beat`: Authentic Swatch Red Square dot + beat number)
+  - `@550 ▪beats` (`with_unit`: Unit suffix with Swatch Red Square dot punctuation)
   - `@550 (55.0%)` (With day completion percentage)
   - `@550 (09:18)` (Dual time: Beats + Local time)
 - **Badge Styles:**
@@ -168,7 +169,7 @@ You can customize OmaBeat via `~/.config/omarchy/shell.json` or through the Omar
 
 | Key | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `format` | enum | `"beats"` | Options: `"beats"`, `"centibeats"`, `"with_unit"`, `"percentage"`, `"dual_local"` |
+| `format` | enum | `"beats"` | Options: `"beats"`, `"centibeats"`, `"dot_beat"`, `"with_unit"`, `"percentage"`, `"dual_local"` |
 | `badgeStyle` | enum | `"flat"` | Options: `"flat"`, `"pill"`, `"progress"` |
 | `showCentibeats`| bool | `false` | Enable live 2-decimal ticking centibeats on bar |
 | `showIcon` | bool | `true` | Show `@` dial icon before text |

@@ -58,10 +58,15 @@ BarWidget {
     return lines.join("\n")
   }
 
+  // Swatch red dot & square styling
+  readonly property color swatchRed: "#e2231a"
+  readonly property real squareSize: Math.max(6, Math.min(8, Math.round(button.fontSize * 0.52)))
+  readonly property bool isRedDotFormat: !root.vertical && (root.currentFormat === "dot_beat" || root.currentFormat === "with_unit")
+
   // Popout panel coordinator contract (Omarchy shell standard)
   readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
   readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing === true : false
-  readonly property real openPanelIndicatorWidth: button.labelWidth
+  readonly property real openPanelIndicatorWidth: (root.isRedDotFormat && customRow.implicitWidth > 0) ? customRow.implicitWidth : button.labelWidth
   readonly property real openPanelIndicatorHeight: Math.max(Style.space(10), Math.round(Style.bar.iconSlot * 0.55))
 
   function open() {
@@ -220,18 +225,119 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.vertical ? "" : root.displayText
-    labelVisible: !root.vertical
+    labelVisible: !root.vertical && !root.isRedDotFormat
     hasVisualContent: true
     active: root.opened
     tooltipText: root.tooltipInfo
+    fixedWidth: (root.isRedDotFormat && customRow.implicitWidth > 0) ? Math.round(customRow.implicitWidth + button.scaledHorizontalMargin * 2) : -1
     horizontalMargin: (root.badgeStyle === "pill" || root.badgeStyle === "progress") ? 6 : 8.75
+
+    // Red Square dot display for 'dot_beat' (.720) and 'with_unit' (@720 .beats)
+    Row {
+      id: customRow
+      visible: root.isRedDotFormat
+      anchors.centerIn: parent
+      spacing: 2
+
+      // CASE 1: 'dot_beat' format (e.g. ▪720)
+      Item {
+        visible: root.currentFormat === "dot_beat"
+        width: root.squareSize
+        height: dotBeatText.implicitHeight
+
+        Rectangle {
+          width: root.squareSize
+          height: root.squareSize
+          color: root.swatchRed
+          anchors.bottom: parent.bottom
+          anchors.bottomMargin: Math.max(2, Math.round(button.fontSize * 0.2))
+        }
+      }
+
+      Text {
+        id: dotBeatText
+        visible: root.currentFormat === "dot_beat"
+        textFormat: Text.PlainText
+        text: (root.showCentibeats ? (root.stats.digitsOnly + "." + root.stats.centibeatsDigits) : root.stats.digitsOnly) + (root.showSuffix ? " .beats" : "")
+        color: button.active && button.useActiveColor ? button.activeColor : button.foreground
+        font.family: button.fontFamily
+        font.pixelSize: button.fontSize
+        renderType: Text.NativeRendering
+
+        Behavior on color {
+          enabled: !root.bar || root.bar.foregroundAnimationEnabled
+          ColorAnimation { duration: 160 }
+        }
+      }
+
+      // CASE 2: 'with_unit' format (e.g. @720 ▪beats)
+      Text {
+        id: unitPrefixText
+        visible: root.currentFormat === "with_unit"
+        textFormat: Text.PlainText
+        text: (root.showPrefix ? "@" : "") + (root.showCentibeats ? (root.stats.digitsOnly + "." + root.stats.centibeatsDigits) : root.stats.digitsOnly) + " "
+        color: button.active && button.useActiveColor ? button.activeColor : button.foreground
+        font.family: button.fontFamily
+        font.pixelSize: button.fontSize
+        renderType: Text.NativeRendering
+
+        Behavior on color {
+          enabled: !root.bar || root.bar.foregroundAnimationEnabled
+          ColorAnimation { duration: 160 }
+        }
+      }
+
+      Item {
+        visible: root.currentFormat === "with_unit"
+        width: root.squareSize
+        height: unitPrefixText.implicitHeight
+
+        Rectangle {
+          width: root.squareSize
+          height: root.squareSize
+          color: root.swatchRed
+          anchors.bottom: parent.bottom
+          anchors.bottomMargin: Math.max(2, Math.round(button.fontSize * 0.2))
+        }
+      }
+
+      Text {
+        id: unitSuffixText
+        visible: root.currentFormat === "with_unit"
+        textFormat: Text.PlainText
+        text: "beats"
+        color: button.active && button.useActiveColor ? button.activeColor : button.foreground
+        font.family: button.fontFamily
+        font.pixelSize: button.fontSize
+        renderType: Text.NativeRendering
+
+        Behavior on color {
+          enabled: !root.bar || root.bar.foregroundAnimationEnabled
+          ColorAnimation { duration: 160 }
+        }
+      }
+    }
 
     // Vertical orientation optical display
     Column {
       visible: root.vertical
       anchors.fill: parent
 
+      Item {
+        visible: root.currentFormat === "dot_beat"
+        width: button.width
+        height: Style.bar.iconSlot
+
+        Rectangle {
+          width: root.squareSize
+          height: root.squareSize
+          color: root.swatchRed
+          anchors.centerIn: parent
+        }
+      }
+
       OpticalGlyph {
+        visible: root.currentFormat !== "dot_beat"
         width: button.width
         height: Style.bar.iconSlot
         text: "@"

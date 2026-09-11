@@ -193,6 +193,8 @@ function formatDisplay(info, format, showCentibeats, showPrefix, showSuffix) {
     : info.digitsOnly
 
   switch (format) {
+    case "dot_beat":
+      return "." + mainNumber + suffix
     case "centibeats":
       return prefix + info.digitsOnly + "." + info.centibeatsDigits + suffix
     case "with_unit":
@@ -209,7 +211,7 @@ function formatDisplay(info, format, showCentibeats, showPrefix, showSuffix) {
 
 // Next format in rotation when clicking / cycling
 function nextFormat(current) {
-  var formats = ["beats", "centibeats", "with_unit", "percentage", "dual_local"]
+  var formats = ["beats", "centibeats", "dot_beat", "with_unit", "percentage", "dual_local"]
   var idx = formats.indexOf(current)
   if (idx === -1) return "beats"
   return formats[(idx + 1) % formats.length]

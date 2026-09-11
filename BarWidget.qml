@@ -34,6 +34,10 @@ BarWidget {
     root.showSuffix
   )
 
+  function sanitizeText(s) {
+    return String(s || "").replace(/[<>&]/g, "").slice(0, 50)
+  }
+
   // Multi-line detailed tooltip
   readonly property string tooltipInfo: {
     var lines = [
@@ -49,7 +53,7 @@ BarWidget {
       "• Left-click: Open Panel & Converter",
       "• Middle-click: Toggle Centibeats (" + (root.showCentibeats ? "Active" : "Off") + ")",
       "• Right-click: Copy Beat (" + stats.formattedInt + ")",
-      "• Scroll: Cycle Format (" + root.currentFormat + ")"
+      "• Scroll: Cycle Format (" + sanitizeText(root.currentFormat) + ")"
     ]
     return lines.join("\n")
   }

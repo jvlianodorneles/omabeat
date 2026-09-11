@@ -15,12 +15,15 @@ Usage:
 
 import sys
 import os
+import stat
 import json
+import tempfile
 import subprocess
 from datetime import datetime, timezone, timedelta
 
 CONFIG_DIR = os.path.expanduser("~/.local/state/omarchy/omabeat")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
+MAX_CONFIG_BYTES = 65536
 
 DEFAULT_CONFIG = {
     "format": "beats",
@@ -102,10 +105,21 @@ def cmd_copy(centi=False):
     stats = get_beat_stats()
     text_to_copy = stats["formatted_centi"] if centi else stats["formatted"]
     
-    # Copy via wl-copy with stdin to avoid argv leaks
+    # Copy via wl-copy with stdin to avoid argv leaks and process isolation
     try:
-        proc = subprocess.Popen(["wl-copy"], stdin=subprocess.PIPE)
-        proc.communicate(input=text_to_copy.encode("utf-8"), timeout=3)
+        proc = subprocess.Popen(
+            ["wl-copy", "--"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        try:
+            proc.communicate(input=text_to_copy.encode("utf-8"), timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+            sys.stderr.write("wl-copy timed out.\n")
+            return 1
     except Exception as e:
         sys.stderr.write(f"wl-copy failed: {e}\n")
         return 1
@@ -201,21 +215,31 @@ def cmd_notify():
     return 0
 
 def ensure_config_dir():
+    # Refuse planted symlink on directory
+    if os.path.islink(CONFIG_DIR):
+        raise OSError(f"Refusing planted symlink at state directory: {CONFIG_DIR}")
     if not os.path.exists(CONFIG_DIR):
         os.makedirs(CONFIG_DIR, mode=0o700, exist_ok=True)
-    else:
-        try:
-            os.chmod(CONFIG_DIR, 0o700)
-        except OSError:
-            pass
+    try:
+        os.chmod(CONFIG_DIR, 0o700)
+    except OSError:
+        pass
 
 def cmd_get_config():
     ensure_config_dir()
-    if not os.path.isfile(CONFIG_FILE):
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+    try:
+        fd = os.open(CONFIG_FILE, flags)
+    except (FileNotFoundError, OSError):
         print(json.dumps(DEFAULT_CONFIG, indent=2))
         return 0
+
     try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_size > MAX_CONFIG_BYTES:
+            print(json.dumps(DEFAULT_CONFIG, indent=2))
+            return 0
+        with os.fdopen(fd, "r", encoding="utf-8") as f:
             data = json.load(f)
             merged = {**DEFAULT_CONFIG, **data}
             print(json.dumps(merged, indent=2))
@@ -236,15 +260,23 @@ def cmd_set_config(json_str):
 
     merged = {**DEFAULT_CONFIG, **data}
 
-    # Atomic write to config.json
-    tmp_path = os.path.join(CONFIG_DIR, f".config.tmp.{os.getpid()}")
+    # Atomic write to config.json using mkstemp in destination directory
+    fd, tmp_path = tempfile.mkstemp(dir=CONFIG_DIR, prefix=".config.tmp.")
     try:
-        fd = os.open(tmp_path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        os.fchmod(fd, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(merged, f, indent=2)
             f.flush()
             os.fsync(fd)
         os.replace(tmp_path, CONFIG_FILE)
+        
+        # Sync directory to ensure durability
+        dir_fd = os.open(CONFIG_DIR, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_CLOEXEC", 0))
+        try:
+            os.fsync(dir_fd)
+        finally:
+            os.close(dir_fd)
+            
         print(json.dumps(merged, indent=2))
         return 0
     except Exception as e:

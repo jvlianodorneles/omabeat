@@ -36,8 +36,11 @@ cp -rf "${SOURCE_DIR}/scripts" "${OMARCHY_PLUGIN_DIR}/"
 
 echo "✓ Installed Omarchy Plugin to ${OMARCHY_PLUGIN_DIR}"
 
-# 3. Register in Omarchy shell.json if not present
-if [ -f "${SHELL_CONFIG}" ]; then
+# 3. Enable in Omarchy status bar layout
+if command -v omarchy >/dev/null 2>&1; then
+  omarchy plugin enable dorneles.omabeat right >/dev/null 2>&1 || true
+  echo "✓ Enabled dorneles.omabeat via omarchy plugin manager"
+elif [ -f "${SHELL_CONFIG}" ]; then
   OMABEAT_CONFIG_PATH="${SHELL_CONFIG}" python3 -c "
 import json, os
 config_path = os.environ.get('OMABEAT_CONFIG_PATH')

@@ -23,8 +23,11 @@ if [ -d "${OMARCHY_PLUGIN_DIR}" ]; then
   echo "✓ Removed plugin directory ${OMARCHY_PLUGIN_DIR}"
 fi
 
-# 3. Unregister from shell.json
-if [ -f "${SHELL_CONFIG}" ]; then
+# 3. Disable and unregister plugin
+if command -v omarchy >/dev/null 2>&1; then
+  omarchy plugin disable dorneles.omabeat >/dev/null 2>&1 || true
+  echo "✓ Disabled dorneles.omabeat via omarchy plugin manager"
+elif [ -f "${SHELL_CONFIG}" ]; then
   OMABEAT_CONFIG_PATH="${SHELL_CONFIG}" python3 -c "
 import json, os
 config_path = os.environ.get('OMABEAT_CONFIG_PATH')

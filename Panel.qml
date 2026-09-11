@@ -53,11 +53,11 @@ Panel {
 
   function copyBeatOnly() {
     var text = root.showCentibeats ? root.beatStats.formattedCentibeats : root.beatStats.formattedInt
-    Quickshell.execDetached(["wl-copy", "--", text])
+    Quickshell.execDetached(["/usr/bin/wl-copy", "--", text])
 
     if (root.copyNotification) {
       Quickshell.execDetached([
-        "notify-send",
+        "/usr/bin/notify-send",
         "-a", "OmaBeat",
         "-i", "clock",
         "Swatch Beat Copied",
@@ -72,11 +72,11 @@ Panel {
   function copyWithContext() {
     var beatStr = root.showCentibeats ? root.beatStats.formattedCentibeats : root.beatStats.formattedInt
     var fullStr = beatStr + " (" + root.beatStats.bmtTime + " BMT • " + root.beatStats.localShortTime + " Local)"
-    Quickshell.execDetached(["wl-copy", "--", fullStr])
+    Quickshell.execDetached(["/usr/bin/wl-copy", "--", fullStr])
 
     if (root.copyNotification) {
       Quickshell.execDetached([
-        "notify-send",
+        "/usr/bin/notify-send",
         "-a", "OmaBeat",
         "-i", "clock",
         "Swatch Beat Copied",

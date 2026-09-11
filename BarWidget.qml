@@ -82,11 +82,11 @@ BarWidget {
 
   function copyBeat() {
     var text = root.showCentibeats ? stats.formattedCentibeats : stats.formattedInt
-    Quickshell.execDetached(["wl-copy", "--", text])
+    Quickshell.execDetached(["/usr/bin/wl-copy", "--", text])
 
     if (root.copyNotification) {
       Quickshell.execDetached([
-        "notify-send",
+        "/usr/bin/notify-send",
         "-a", "OmaBeat",
         "-i", "clock",
         "Swatch Beat Copied",
@@ -124,7 +124,7 @@ BarWidget {
     if (root.centuryChime && stats.intBeats % 100 === 0 && stats.intBeats !== root.lastCenturyNotified) {
       root.lastCenturyNotified = stats.intBeats
       Quickshell.execDetached([
-        "notify-send",
+        "/usr/bin/notify-send",
         "-a", "OmaBeat",
         "-i", "clock",
         "Century Beat Milestone!",

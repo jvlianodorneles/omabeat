@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/bash
 # omabeat — Swatch Internet Time CLI runner
 
 set -euo pipefail
@@ -11,4 +11,5 @@ if [[ ! -f "$HELPER" ]]; then
   exit 1
 fi
 
-exec python3 "$HELPER" "$@"
+exec /usr/bin/python3 -I "$HELPER" "$@"
+

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3 -I
 """
 omabeat-ctl.py — Backend CLI controller for OmaBeat (Swatch Internet Time) Omarchy Plugin
 
@@ -17,12 +17,11 @@ import sys
 import os
 import stat
 import json
+import secrets
 import tempfile
 import subprocess
 from datetime import datetime, timezone, timedelta
 
-CONFIG_DIR = os.path.expanduser("~/.local/state/omarchy/omabeat")
-CONFIG_FILE = os.path.join(CONFIG_DIR, "config.json")
 MAX_CONFIG_BYTES = 65536
 
 DEFAULT_CONFIG = {
@@ -108,7 +107,7 @@ def cmd_copy(centi=False):
     # Copy via wl-copy with stdin to avoid argv leaks and process isolation
     try:
         proc = subprocess.Popen(
-            ["wl-copy", "--"],
+            ["/usr/bin/wl-copy", "--"],
             stdin=subprocess.PIPE,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
@@ -127,7 +126,7 @@ def cmd_copy(centi=False):
     # Desktop toast notification
     try:
         subprocess.run([
-            "notify-send",
+            "/usr/bin/notify-send",
             "-a", "OmaBeat",
             "-i", "clock",
             "Swatch Internet Time Copied",
@@ -203,7 +202,7 @@ def cmd_notify():
     )
     try:
         subprocess.run([
-            "notify-send",
+            "/usr/bin/notify-send",
             "-a", "OmaBeat",
             "-i", "clock",
             f"Swatch Internet Time: {stats['formatted']}",
@@ -214,42 +213,68 @@ def cmd_notify():
         return 1
     return 0
 
-def ensure_config_dir():
-    # Refuse planted symlink on directory
-    if os.path.islink(CONFIG_DIR):
-        raise OSError(f"Refusing planted symlink at state directory: {CONFIG_DIR}")
-    if not os.path.exists(CONFIG_DIR):
-        os.makedirs(CONFIG_DIR, mode=0o700, exist_ok=True)
+def open_dir_chain(parts):
+    """Walk from user home with held descriptors; return the final dirfd."""
+    home = os.path.expanduser("~")
+    fd = os.open(home, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0))
     try:
-        os.chmod(CONFIG_DIR, 0o700)
-    except OSError:
-        pass
+        for name in parts:
+            try:
+                nfd = os.open(name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0), dir_fd=fd)
+            except FileNotFoundError:
+                os.mkdir(name, 0o700, dir_fd=fd)
+                nfd = os.open(name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0), dir_fd=fd)
+            os.close(fd)
+            fd = nfd
+            st = os.fstat(fd)
+            if not stat.S_ISDIR(st.st_mode) or st.st_uid != os.geteuid():
+                raise PermissionError(f"Untrusted directory component {name}")
+        st = os.fstat(fd)
+        if st.st_mode & 0o077:
+            os.fchmod(fd, 0o700)
+        return fd
+    except BaseException:
+        os.close(fd)
+        raise
 
 def cmd_get_config():
-    ensure_config_dir()
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
     try:
-        fd = os.open(CONFIG_FILE, flags)
-    except (FileNotFoundError, OSError):
-        print(json.dumps(DEFAULT_CONFIG, indent=2))
-        return 0
-
-    try:
-        st = os.fstat(fd)
-        if not stat.S_ISREG(st.st_mode) or st.st_size > MAX_CONFIG_BYTES:
-            print(json.dumps(DEFAULT_CONFIG, indent=2))
-            return 0
-        with os.fdopen(fd, "r", encoding="utf-8") as f:
-            data = json.load(f)
-            merged = {**DEFAULT_CONFIG, **data}
-            print(json.dumps(merged, indent=2))
-            return 0
+        dir_fd = open_dir_chain([".local", "state", "omarchy", "omabeat"])
     except Exception:
         print(json.dumps(DEFAULT_CONFIG, indent=2))
         return 0
 
-def cmd_set_config(json_str):
-    ensure_config_dir()
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0)
+        try:
+            fd = os.open("config.json", flags, dir_fd=dir_fd)
+        except (FileNotFoundError, OSError):
+            print(json.dumps(DEFAULT_CONFIG, indent=2))
+            return 0
+
+        try:
+            st = os.fstat(fd)
+            if not stat.S_ISREG(st.st_mode) or st.st_uid != os.geteuid() or st.st_size > MAX_CONFIG_BYTES:
+                print(json.dumps(DEFAULT_CONFIG, indent=2))
+                return 0
+            with os.fdopen(fd, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                merged = {**DEFAULT_CONFIG, **data}
+                print(json.dumps(merged, indent=2))
+                return 0
+        except Exception:
+            print(json.dumps(DEFAULT_CONFIG, indent=2))
+            return 0
+    finally:
+        os.close(dir_fd)
+
+def cmd_set_config(json_str=None):
+    if json_str is None:
+        json_str = sys.stdin.read(MAX_CONFIG_BYTES + 1)
+    if len(json_str) > MAX_CONFIG_BYTES:
+        sys.stderr.write("Error: config payload exceeds size limit.\n")
+        return 1
+
     try:
         data = json.loads(json_str)
         if not isinstance(data, dict):
@@ -259,34 +284,36 @@ def cmd_set_config(json_str):
         return 1
 
     merged = {**DEFAULT_CONFIG, **data}
-
-    # Atomic write to config.json using mkstemp in destination directory
-    fd, tmp_path = tempfile.mkstemp(dir=CONFIG_DIR, prefix=".config.tmp.")
+    dir_fd = open_dir_chain([".local", "state", "omarchy", "omabeat"])
+    tmp_name = f".config.{secrets.token_hex(8)}.tmp"
     try:
-        os.fchmod(fd, 0o600)
-        with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(merged, f, indent=2)
-            f.flush()
-            os.fsync(fd)
-        os.replace(tmp_path, CONFIG_FILE)
-        
-        # Sync directory to ensure durability
-        dir_fd = os.open(CONFIG_DIR, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_CLOEXEC", 0))
+        fd = os.open(
+            tmp_name,
+            os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_CLOEXEC", 0),
+            0o600,
+            dir_fd=dir_fd
+        )
         try:
+            os.fchmod(fd, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                json.dump(merged, f, indent=2)
+                f.flush()
+                os.fsync(fd)
+            os.replace(tmp_name, "config.json", src_dir_fd=dir_fd, dst_dir_fd=dir_fd)
             os.fsync(dir_fd)
-        finally:
-            os.close(dir_fd)
-            
-        print(json.dumps(merged, indent=2))
-        return 0
-    except Exception as e:
-        if os.path.exists(tmp_path):
+            print(json.dumps(merged, indent=2))
+            return 0
+        except BaseException:
             try:
-                os.unlink(tmp_path)
+                os.unlink(tmp_name, dir_fd=dir_fd)
             except OSError:
                 pass
+            raise
+    except Exception as e:
         sys.stderr.write(f"Failed to write config: {e}\n")
         return 1
+    finally:
+        os.close(dir_fd)
 
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
@@ -317,10 +344,8 @@ def main():
     elif cmd == "get-config":
         return cmd_get_config()
     elif cmd == "set-config":
-        if len(sys.argv) < 3:
-            sys.stderr.write("Usage: omabeat-ctl.py set-config <json_payload>\n")
-            return 1
-        return cmd_set_config(sys.argv[2])
+        payload = sys.argv[2] if len(sys.argv) >= 3 else None
+        return cmd_set_config(payload)
     else:
         sys.stderr.write(f"Unknown command '{cmd}'. Run with --help for usage.\n")
         return 1

@@ -6,6 +6,8 @@
 [![Quickshell](https://img.shields.io/badge/quickshell-v0.3+-purple.svg)](https://github.com/outfoxxed/quickshell)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+![OmaBeat Preview](preview.png)
+
 **OmaBeat** brings **Swatch Internet Time** (Biel Mean Time / `.beat`) to the Omarchy status bar and Wayland desktop. Conceived in 1998 by the Swatch Corporation and Nicholas Negroponte (MIT Media Lab), Internet Time eliminates geographic time zones and daylight saving time changes, replacing them with a single global solar day divided into **1000 .beats**.
 
 ---
@@ -101,30 +103,48 @@ omabeat notify
 
 ## 🚀 Installation
 
-### Automated Install
-Clone or copy into your workspace and run:
+### Via Omarchy Plugin Manager (Recommended)
+Install and enable the plugin directly into your Omarchy status bar:
 
 ```bash
-cd /home/dorneles/Projects/omabeat
-./install.sh
+omarchy plugin add https://github.com/jvlianodorneles/omabeat --enable
 ```
 
-Then reload your Omarchy shell:
+### Optional CLI Tool
+To use the standalone `omabeat` CLI from your terminal, link it to your local binary path:
+
 ```bash
-omarchy-restart-shell
+ln -sf ~/.config/omarchy/plugins/dorneles.omabeat/bin/omabeat ~/.local/bin/omabeat
 ```
 
-### Manual Install
-Link the plugin to your Omarchy plugins directory:
+### Manual / Development Setup
+If you are developing or cloning locally:
+
 ```bash
-ln -s /home/dorneles/Projects/omabeat ~/.config/omarchy/plugins/dorneles.omabeat
-ln -s /home/dorneles/Projects/omabeat/bin/omabeat ~/.local/bin/omabeat
+git clone https://github.com/jvlianodorneles/omabeat.git ~/.config/omarchy/plugins/dorneles.omabeat
+omarchy plugin enable dorneles.omabeat right
 ```
 
-Validate the plugin anytime with:
+---
+
+## 🗑️ Removal & Uninstallation
+
+To cleanly remove the plugin from Omarchy:
+
 ```bash
-omarchy plugin validate /home/dorneles/Projects/omabeat
+omarchy plugin remove dorneles.omabeat
 ```
+
+### Residual Artifacts Disclosure
+- **Removed automatically by Omarchy**:
+  - Plugin directory: `~/.config/omarchy/plugins/dorneles.omabeat`
+  - Status bar configuration entry in `~/.config/omarchy/shell.json`
+- **Optional CLI symlink** (if manually created):
+  - `rm -f ~/.local/bin/omabeat`
+- **Persistent State File**:
+  - Non-sensitive user preferences (e.g. chosen format, centibeats toggle) are kept in `~/.local/state/omarchy/omabeat/config.json`.
+  - To delete state completely: `rm -rf ~/.local/state/omarchy/omabeat`
+- **No Background Daemons or Secrets**: OmaBeat runs entirely within the shell process when active; it installs no system services, root/sudoers rules, background sockets, or external credentials.
 
 ---
 

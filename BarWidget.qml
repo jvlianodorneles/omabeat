@@ -78,7 +78,7 @@ BarWidget {
 
   function copyBeat() {
     var text = root.showCentibeats ? stats.formattedCentibeats : stats.formattedInt
-    Quickshell.execDetached(["wl-copy", text])
+    Quickshell.execDetached(["wl-copy", "--", text])
 
     if (root.copyNotification) {
       Quickshell.execDetached([

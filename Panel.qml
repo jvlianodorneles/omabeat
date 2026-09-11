@@ -32,9 +32,9 @@ Panel {
   property bool centuryChime: hostWidget ? hostWidget.centuryChime : setting("centuryChime", false)
   property bool copyNotification: hostWidget ? hostWidget.copyNotification : setting("copyNotification", true)
 
-  // Feedback on copy
-  property bool copySuccess: false
-  property string lastCopiedText: ""
+  // Independent copy feedback states
+  property bool copyBeatSuccess: false
+  property bool copyContextSuccess: false
 
   function open() {
     root.currentDate = new Date()
@@ -51,33 +51,41 @@ Panel {
     else root.open()
   }
 
-  function copyText(text) {
-    if (!text) return
-    root.lastCopiedText = text
-    Quickshell.execDetached(["wl-copy", text])
+  function copyBeatOnly() {
+    var text = root.showCentibeats ? root.beatStats.formattedCentibeats : root.beatStats.formattedInt
+    Quickshell.execDetached(["wl-copy", "--", text])
 
     if (root.copyNotification) {
       Quickshell.execDetached([
         "notify-send",
         "-a", "OmaBeat",
         "-i", "clock",
-        "Swatch Internet Time Copied",
-        text + " (BMT " + root.beatStats.bmtTime + " • Local " + root.beatStats.localTime + ")"
+        "Swatch Beat Copiado",
+        text
       ])
     }
 
-    root.copySuccess = true
-    copyTimer.restart()
+    root.copyBeatSuccess = true
+    copyBeatTimer.restart()
   }
 
-  function copyCurrentBeat(withCenti) {
-    var str = withCenti ? root.beatStats.formattedCentibeats : root.beatStats.formattedInt
-    root.copyText(str)
-  }
+  function copyWithContext() {
+    var beatStr = root.showCentibeats ? root.beatStats.formattedCentibeats : root.beatStats.formattedInt
+    var fullStr = beatStr + " (" + root.beatStats.bmtTime + " BMT • " + root.beatStats.localShortTime + " Local)"
+    Quickshell.execDetached(["wl-copy", "--", fullStr])
 
-  function copyFullTimestamp() {
-    var str = root.beatStats.formattedInt + " (" + root.beatStats.internetDate + " • " + root.beatStats.bmtTime + " BMT)"
-    root.copyText(str)
+    if (root.copyNotification) {
+      Quickshell.execDetached([
+        "notify-send",
+        "-a", "OmaBeat",
+        "-i", "clock",
+        "Swatch Beat Copiado",
+        fullStr
+      ])
+    }
+
+    root.copyContextSuccess = true
+    copyContextTimer.restart()
   }
 
   function toggleCentibeats() {
@@ -104,12 +112,17 @@ Panel {
   }
 
   Timer {
-    id: copyTimer
-    interval: 1800
+    id: copyBeatTimer
+    interval: 1500
     repeat: false
-    onTriggered: {
-      root.copySuccess = false
-    }
+    onTriggered: root.copyBeatSuccess = false
+  }
+
+  Timer {
+    id: copyContextTimer
+    interval: 1500
+    repeat: false
+    onTriggered: root.copyContextSuccess = false
   }
 
   KeyboardPanel {
@@ -118,7 +131,7 @@ Panel {
     owner: root.barIdentity
     bar: root.bar || (hostWidget ? hostWidget.bar : null)
     open: root.opened
-    contentWidth: panel.fittedContentWidth(Style.space(430))
+    contentWidth: panel.fittedContentWidth(Style.space(420))
     contentHeight: panel.fittedContentHeight(mainColumn.implicitHeight)
     focusTarget: keyCatcher
 
@@ -128,7 +141,7 @@ Panel {
       onCloseRequested: root.close()
       onTextKey: function(t) {
         if (t === "c" || t === "C") {
-          root.copyCurrentBeat(false)
+          root.copyBeatOnly()
         } else if (t === "p" || t === "P") {
           root.toggleCentibeats()
         } else if (t === "r" || t === "R") {
@@ -147,7 +160,7 @@ Panel {
       ColumnLayout {
         id: mainColumn
         anchors.fill: parent
-        spacing: Style.space(12)
+        spacing: Style.space(10)
 
         // ---- HEADER ROW
         RowLayout {
@@ -227,7 +240,7 @@ Panel {
         // ---- HERO CARD (Massive Beat Display + Progress)
         Rectangle {
           Layout.fillWidth: true
-          Layout.preferredHeight: Style.space(112)
+          Layout.preferredHeight: Style.space(118)
           radius: Style.radius(8)
           color: Util.alpha(Color.foreground, 0.04)
           border.width: 1
@@ -238,7 +251,7 @@ Panel {
             anchors.margins: Style.space(10)
             spacing: Style.space(6)
 
-            // Large Number readout: @ 550 .85
+            // Large Number readout: @ 550 .85 .beats
             RowLayout {
               Layout.fillWidth: true
               Layout.alignment: Qt.AlignHCenter
@@ -313,7 +326,7 @@ Panel {
               }
             }
 
-            // Progress labels
+            // Progress labels (no redundant beat numbers)
             RowLayout {
               Layout.fillWidth: true
 
@@ -328,7 +341,7 @@ Panel {
               Item { Layout.fillWidth: true }
 
               Text {
-                text: root.beatStats.digitsOnly + " / 1000 • " + root.beatStats.progressPercent + "% of day"
+                text: root.beatStats.progressPercent + "% do dia solar • " + root.beatStats.beatsRemaining + " beats restantes"
                 color: Util.alpha(Color.foreground, 0.70)
                 font.pixelSize: Style.font.caption
                 font.bold: true
@@ -357,7 +370,7 @@ Panel {
           // BMT Chip (Biel Mean Time)
           Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
+            Layout.preferredHeight: Style.space(46)
             radius: Style.radius(6)
             color: Util.alpha(Color.foreground, 0.03)
             border.width: 1
@@ -392,7 +405,7 @@ Panel {
           // UTC Chip
           Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
+            Layout.preferredHeight: Style.space(46)
             radius: Style.radius(6)
             color: Util.alpha(Color.foreground, 0.03)
             border.width: 1
@@ -427,7 +440,7 @@ Panel {
           // Local Time Chip
           Rectangle {
             Layout.fillWidth: true
-            Layout.preferredHeight: Style.space(48)
+            Layout.preferredHeight: Style.space(46)
             radius: Style.radius(6)
             color: Util.alpha(Color.foreground, 0.03)
             border.width: 1
@@ -438,7 +451,7 @@ Panel {
               spacing: 1
 
               Text {
-                text: "LOCAL TIME"
+                text: "HORA LOCAL"
                 color: Util.alpha(Color.foreground, 0.50)
                 font.pixelSize: Style.font.caption - 1
                 font.bold: true
@@ -456,6 +469,59 @@ Panel {
                 renderType: Text.NativeRendering
                 Layout.alignment: Qt.AlignHCenter
               }
+            }
+          }
+        }
+
+        // ---- CENTURY MILESTONE ROW (Compact Context Card)
+        Rectangle {
+          Layout.fillWidth: true
+          Layout.preferredHeight: Style.space(28)
+          radius: Style.radius(5)
+          color: Util.alpha(Color.foreground, 0.03)
+          border.width: 1
+          border.color: Util.alpha(Color.foreground, 0.06)
+
+          RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Style.space(10)
+            anchors.rightMargin: Style.space(10)
+            spacing: Style.space(6)
+
+            Text {
+              text: "\uf0a2"
+              color: Color.accent
+              font.family: root.bar ? root.bar.fontFamily : Style.font.family
+              font.pixelSize: Style.font.caption
+              textFormat: Text.PlainText
+              renderType: Text.NativeRendering
+            }
+
+            Text {
+              text: "Próximo marco centenário:"
+              color: Util.alpha(Color.foreground, 0.60)
+              font.pixelSize: Style.font.caption
+              textFormat: Text.PlainText
+              renderType: Text.NativeRendering
+            }
+
+            Text {
+              text: root.centuryInfo.formattedNextBeat
+              color: Color.accent
+              font.pixelSize: Style.font.caption
+              font.bold: true
+              textFormat: Text.PlainText
+              renderType: Text.NativeRendering
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+              text: "em " + root.centuryInfo.beatsLeft + " beats (~" + root.centuryInfo.minutesLeft + " min)"
+              color: Util.alpha(Color.foreground, 0.55)
+              font.pixelSize: Style.font.caption
+              textFormat: Text.PlainText
+              renderType: Text.NativeRendering
             }
           }
         }
@@ -478,7 +544,7 @@ Panel {
             }
 
             Text {
-              text: "Beat ⟷ Local Time Converter"
+              text: "Calculadora de Beats"
               color: Color.popups.text
               font.pixelSize: Style.font.body
               font.bold: true
@@ -488,6 +554,7 @@ Panel {
 
             Item { Layout.fillWidth: true }
 
+            // Target Conversion Badge
             Rectangle {
               Layout.preferredHeight: Style.space(22)
               Layout.preferredWidth: convBadgeText.implicitWidth + Style.space(12)
@@ -497,7 +564,7 @@ Panel {
               Text {
                 id: convBadgeText
                 anchors.centerIn: parent
-                text: "@" + String(root.sliderBeat).padStart(3, "0") + " = " + root.sliderLocalResult.shortTimeStr + " local"
+                text: "@" + String(root.sliderBeat).padStart(3, "0") + " ➔ " + root.sliderLocalResult.shortTimeStr + " local"
                 color: Color.accent
                 font.bold: true
                 font.pixelSize: Style.font.caption
@@ -574,28 +641,28 @@ Panel {
           }
         }
 
-        // ---- ACTIONS ROW (Copy Buttons)
+        // ---- ACTIONS ROW (Independent, Clean Copy Buttons)
         RowLayout {
           Layout.fillWidth: true
           spacing: Style.space(6)
 
-          // Copy Current Beat Button
+          // Button 1: Copy Current Beat
           Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: Style.space(32)
             radius: Style.radius(6)
             color: copyBeatMouse.pressed
-              ? Util.alpha(Color.accent, 0.8)
-              : (copyBeatMouse.containsMouse ? Util.alpha(Color.accent, 0.25) : Util.alpha(Color.accent, 0.16))
+              ? Util.alpha(Color.accent, 0.40)
+              : (copyBeatMouse.containsMouse ? Util.alpha(Color.accent, 0.22) : Util.alpha(Color.accent, 0.14))
             border.width: 1
-            border.color: Color.accent
+            border.color: root.copyBeatSuccess ? Color.accent : Util.alpha(Color.accent, 0.60)
 
             RowLayout {
               anchors.centerIn: parent
-              spacing: Style.space(5)
+              spacing: Style.space(6)
 
               Text {
-                text: root.copySuccess ? "\uf00c" : "\uf0c5"
+                text: root.copyBeatSuccess ? "\uf00c" : "\uf0c5"
                 color: Color.accent
                 font.family: root.bar ? root.bar.fontFamily : Style.font.family
                 font.pixelSize: Style.font.caption
@@ -604,7 +671,7 @@ Panel {
               }
 
               Text {
-                text: root.copySuccess ? "Copied " + root.lastCopiedText + "!" : "Copy " + root.beatStats.formattedInt
+                text: root.copyBeatSuccess ? "Copiado!" : ("Copiar " + (root.showCentibeats ? root.beatStats.formattedCentibeats : root.beatStats.formattedInt))
                 color: Color.foreground
                 font.pixelSize: Style.font.caption
                 font.bold: true
@@ -618,28 +685,28 @@ Panel {
               anchors.fill: parent
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.copyCurrentBeat(false)
+              onClicked: root.copyBeatOnly()
             }
           }
 
-          // Copy Centibeats Button
+          // Button 2: Copy with Timezone Context
           Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: Style.space(32)
             radius: Style.radius(6)
-            color: copyCentiMouse.pressed
+            color: copyContextMouse.pressed
               ? Util.alpha(Color.foreground, 0.15)
-              : (copyCentiMouse.containsMouse ? Util.alpha(Color.foreground, 0.08) : Util.alpha(Color.foreground, 0.04))
+              : (copyContextMouse.containsMouse ? Util.alpha(Color.foreground, 0.08) : Util.alpha(Color.foreground, 0.04))
             border.width: 1
-            border.color: Util.alpha(Color.foreground, 0.10)
+            border.color: root.copyContextSuccess ? Color.accent : Util.alpha(Color.foreground, 0.10)
 
             RowLayout {
               anchors.centerIn: parent
-              spacing: Style.space(4)
+              spacing: Style.space(6)
 
               Text {
-                text: "\uf0c5"
-                color: Util.alpha(Color.foreground, 0.60)
+                text: root.copyContextSuccess ? "\uf00c" : "\uf0ea"
+                color: root.copyContextSuccess ? Color.accent : Util.alpha(Color.foreground, 0.60)
                 font.family: root.bar ? root.bar.fontFamily : Style.font.family
                 font.pixelSize: Style.font.caption
                 textFormat: Text.PlainText
@@ -647,7 +714,7 @@ Panel {
               }
 
               Text {
-                text: "Copy " + root.beatStats.formattedCentibeats
+                text: root.copyContextSuccess ? "Copiado!" : "Copiar com Contexto"
                 color: Color.foreground
                 font.pixelSize: Style.font.caption
                 font.bold: false
@@ -657,74 +724,37 @@ Panel {
             }
 
             MouseArea {
-              id: copyCentiMouse
+              id: copyContextMouse
               anchors.fill: parent
               hoverEnabled: true
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.copyCurrentBeat(true)
-            }
-          }
-
-          // Full Timestamp Button
-          Rectangle {
-            Layout.preferredWidth: Style.space(34)
-            Layout.preferredHeight: Style.space(32)
-            radius: Style.radius(6)
-            color: copyFullMouse.pressed
-              ? Util.alpha(Color.foreground, 0.15)
-              : (copyFullMouse.containsMouse ? Util.alpha(Color.foreground, 0.08) : Util.alpha(Color.foreground, 0.04))
-            border.width: 1
-            border.color: Util.alpha(Color.foreground, 0.10)
-
-            Text {
-              anchors.centerIn: parent
-              text: "\uf013"
-              color: Util.alpha(Color.foreground, 0.70)
-              font.family: root.bar ? root.bar.fontFamily : Style.font.family
-              font.pixelSize: Style.font.caption
-              textFormat: Text.PlainText
-              renderType: Text.NativeRendering
-            }
-
-            MouseArea {
-              id: copyFullMouse
-              anchors.fill: parent
-              hoverEnabled: true
-              cursorShape: Qt.PointingHandCursor
-              onClicked: root.copyFullTimestamp()
+              onClicked: root.copyWithContext()
             }
           }
         }
 
-        // ---- MILESTONE & STATUS FOOTER
+        // ---- KEYBOARD SHORTCUTS FOOTER (Clean, Centered, Never Overflows)
         Rectangle {
           Layout.fillWidth: true
-          Layout.preferredHeight: Style.space(26)
+          Layout.preferredHeight: Style.space(24)
           radius: Style.radius(4)
           color: Util.alpha(Color.foreground, 0.03)
 
-          RowLayout {
+          Item {
             anchors.fill: parent
-            anchors.leftMargin: Style.space(8)
-            anchors.rightMargin: Style.space(8)
+            anchors.leftMargin: Style.space(6)
+            anchors.rightMargin: Style.space(6)
 
             Text {
-              text: "Next Century: " + root.centuryInfo.formattedNextBeat + " in " + root.centuryInfo.beatsLeft + " beats (~" + root.centuryInfo.minutesLeft + " min)"
-              color: Util.alpha(Color.foreground, 0.60)
-              font.pixelSize: Style.font.caption - 1
-              textFormat: Text.PlainText
-              renderType: Text.NativeRendering
-            }
-
-            Item { Layout.fillWidth: true }
-
-            Text {
-              text: "[c] Copy • [p] Centi • [1-4] Presets • [Esc]"
-              color: Util.alpha(Color.foreground, 0.40)
+              anchors.centerIn: parent
+              text: "[c] Copiar  •  [p] Centibeats  •  [1-4] Marcos  •  [Esc] Fechar"
+              color: Util.alpha(Color.foreground, 0.45)
               font.pixelSize: Style.font.caption - 1
               font.family: "monospace"
               textFormat: Text.PlainText
               renderType: Text.NativeRendering
+              elide: Text.ElideRight
+              width: Math.min(implicitWidth, parent.width)
             }
           }
         }

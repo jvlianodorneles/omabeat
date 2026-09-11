@@ -60,7 +60,7 @@ Panel {
         "notify-send",
         "-a", "OmaBeat",
         "-i", "clock",
-        "Swatch Beat Copiado",
+        "Swatch Beat Copied",
         text
       ])
     }
@@ -79,7 +79,7 @@ Panel {
         "notify-send",
         "-a", "OmaBeat",
         "-i", "clock",
-        "Swatch Beat Copiado",
+        "Swatch Beat Copied",
         fullStr
       ])
     }
@@ -326,7 +326,7 @@ Panel {
               }
             }
 
-            // Progress labels (no redundant beat numbers)
+            // Progress labels
             RowLayout {
               Layout.fillWidth: true
 
@@ -341,7 +341,7 @@ Panel {
               Item { Layout.fillWidth: true }
 
               Text {
-                text: root.beatStats.progressPercent + "% do dia solar • " + root.beatStats.beatsRemaining + " beats restantes"
+                text: root.beatStats.progressPercent + "% of solar day • " + root.beatStats.beatsRemaining + " beats remaining"
                 color: Util.alpha(Color.foreground, 0.70)
                 font.pixelSize: Style.font.caption
                 font.bold: true
@@ -451,7 +451,7 @@ Panel {
               spacing: 1
 
               Text {
-                text: "HORA LOCAL"
+                text: "LOCAL TIME"
                 color: Util.alpha(Color.foreground, 0.50)
                 font.pixelSize: Style.font.caption - 1
                 font.bold: true
@@ -498,7 +498,7 @@ Panel {
             }
 
             Text {
-              text: "Próximo marco centenário:"
+              text: "Next century milestone:"
               color: Util.alpha(Color.foreground, 0.60)
               font.pixelSize: Style.font.caption
               textFormat: Text.PlainText
@@ -517,7 +517,7 @@ Panel {
             Item { Layout.fillWidth: true }
 
             Text {
-              text: "em " + root.centuryInfo.beatsLeft + " beats (~" + root.centuryInfo.minutesLeft + " min)"
+              text: "in " + root.centuryInfo.beatsLeft + " beats (~" + root.centuryInfo.minutesLeft + " min)"
               color: Util.alpha(Color.foreground, 0.55)
               font.pixelSize: Style.font.caption
               textFormat: Text.PlainText
@@ -544,7 +544,7 @@ Panel {
             }
 
             Text {
-              text: "Calculadora de Beats"
+              text: "Beat Calculator"
               color: Color.popups.text
               font.pixelSize: Style.font.body
               font.bold: true
@@ -671,7 +671,7 @@ Panel {
               }
 
               Text {
-                text: root.copyBeatSuccess ? "Copiado!" : ("Copiar " + (root.showCentibeats ? root.beatStats.formattedCentibeats : root.beatStats.formattedInt))
+                text: root.copyBeatSuccess ? "Copied!" : ("Copy " + (root.showCentibeats ? root.beatStats.formattedCentibeats : root.beatStats.formattedInt))
                 color: Color.foreground
                 font.pixelSize: Style.font.caption
                 font.bold: true
@@ -714,7 +714,7 @@ Panel {
               }
 
               Text {
-                text: root.copyContextSuccess ? "Copiado!" : "Copiar com Contexto"
+                text: root.copyContextSuccess ? "Copied!" : "Copy with Context"
                 color: Color.foreground
                 font.pixelSize: Style.font.caption
                 font.bold: false
@@ -747,7 +747,7 @@ Panel {
 
             Text {
               anchors.centerIn: parent
-              text: "[c] Copiar  •  [p] Centibeats  •  [1-4] Marcos  •  [Esc] Fechar"
+              text: "[c] Copy  •  [p] Centibeats  •  [1-4] Presets  •  [Esc] Close"
               color: Util.alpha(Color.foreground, 0.45)
               font.pixelSize: Style.font.caption - 1
               font.family: "monospace"
